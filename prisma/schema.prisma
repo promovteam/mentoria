@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  instagram     String?
+  niche         String?
+  avatar        String?
+  followers     Int       @default(0)
+  followersLast Int       @default(0)
+  postsThisMonth Int      @default(0)
+  points        Int       @default(0)
+  level         String    @default("Iniciante")
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  kanbanCards   KanbanCard[]
+  tasks         UserTask[]
+  posts         Post[]
+  postLikes     PostLike[]
+  postComments  PostComment[]
+  completedLessons UserLesson[]
+  avatarMapping AvatarMapping?
+}
+
+model AvatarMapping {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  summary   String   // resumo gerado pela IA para injetar no prompt
+  rawData   String   // JSON com as respostas completas
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model KanbanCard {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  column      String   @default("ideias")
+  order       Int      @default(0)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  comments    KanbanComment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model KanbanComment {
+  id        String     @id @default(cuid())
+  content   String
+  cardId    String
+  card      KanbanCard @relation(fields: [cardId], references: [id])
+  authorName String
+  createdAt DateTime   @default(now())
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  points      Int        @default(10)
+  dueDate     DateTime?
+  userTasks   UserTask[]
+  createdAt   DateTime   @default(now())
+}
+
+model UserTask {
+  id          String   @id @default(cuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  @@unique([taskId, userId])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int      @default(0)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+}
+
+model Lesson {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  videoUrl    String?
+  duration    Int?
+  order       Int          @default(0)
+  moduleId    String
+  module      Module       @relation(fields: [moduleId], references: [id])
+  completions UserLesson[]
+  downloads   Download[]
+  createdAt   DateTime     @default(now())
+}
+
+model UserLesson {
+  id          String   @id @default(cuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  completedAt DateTime @default(now())
+  @@unique([lessonId, userId])
+}
+
+model Download {
+  id       String @id @default(cuid())
+  title    String
+  url      String
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
+}
+
+model ContentIdea {
+  id          String   @id @default(cuid())
+  theme       String
+  description String
+  context     String?
+  references  String?
+  category    String?
+  createdAt   DateTime @default(now())
+}
+
+model ContentFormat {
+  id          String @id @default(cuid())
+  name        String
+  description String
+  structure   String
+  examples    String?
+  references  String?
+  order       Int    @default(0)
+}
+
+model Creator {
+  id          String @id @default(cuid())
+  name        String
+  niche       String
+  instagram   String
+  followers   String?
+  description String?
+  examples    String?
+  avatar      String?
+}
+
+model Post {
+  id        String        @id @default(cuid())
+  content   String
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id])
+  likes     PostLike[]
+  comments  PostComment[]
+  createdAt DateTime      @default(now())
+}
+
+model PostLike {
+  id     String @id @default(cuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
